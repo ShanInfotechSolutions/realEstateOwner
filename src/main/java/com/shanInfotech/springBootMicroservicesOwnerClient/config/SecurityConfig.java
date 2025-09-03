@@ -19,33 +19,24 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@Configuration
-@EnableMethodSecurity // enables @PreAuthorize on controllers if you use it
+@Configuration(proxyBeanMethods = false)
+@EnableMethodSecurity
 public class SecurityConfig {
 
-  private final JwtAuthFilter jwtAuthFilter;
-
-  public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
-    this.jwtAuthFilter = jwtAuthFilter;
-  }
-
   @Bean
-  PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
-  }
+  PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
 
   @Bean
   UserDetailsService userDetailsService(PasswordEncoder enc) {
     return new InMemoryUserDetailsManager(
-        User.withUsername("admin").password(enc.encode("admin123")).roles("ADMIN").build(),
-        User.withUsername("user").password(enc.encode("user123")).roles("USER").build()
+      User.withUsername("admin").password(enc.encode("admin123")).roles("ADMIN").build(),
+      User.withUsername("user").password(enc.encode("user123")).roles("USER").build()
     );
   }
 
-  // New-style: pass UDS in constructor (no-arg ctor/setter are deprecated)
   @Bean
   AuthenticationProvider authenticationProvider(UserDetailsService uds, PasswordEncoder enc) {
-    DaoAuthenticationProvider p = new DaoAuthenticationProvider(uds);
+    var p = new DaoAuthenticationProvider(uds); // new-style ctor
     p.setPasswordEncoder(enc);
     return p;
   }
@@ -56,10 +47,13 @@ public class SecurityConfig {
   }
 
   @Bean
-  SecurityFilterChain filterChain(HttpSecurity http, AuthenticationProvider provider) throws Exception {
+  SecurityFilterChain filterChain(
+      HttpSecurity http,
+      AuthenticationProvider provider,
+      JwtAuthFilter jwtAuthFilter // ⬅️ inject here, not via constructor/field
+  ) throws Exception {
     http
       .csrf(csrf -> csrf.disable())
-      // .cors(Customizer.withDefaults()) // enable if calling service directly from React (no gateway/proxy)
       .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers("/api/auth/**", "/api/owners/health", "/actuator/health").permitAll()

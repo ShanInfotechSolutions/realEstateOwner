@@ -6,6 +6,9 @@ server:
 spring:
   application:
     name: owner-service  # Logical service name registered with Eureka
+  security:
+       filter:
+        dispatcher-types: REQUEST,ASYNC
 
   datasource:
     url: jdbc:mysql://localhost:3306/microserviceDb?useSSL=false&serverTimezone=UTC
@@ -47,3 +50,6 @@ info:
     name: Owner Service
     description: Service for managing owners
     version: 1.0.0
+  jwt:
+  secret: "bXktd2hvcHBlci1zZWNyZXQtc2lnbmluZy1rZXktMzJieXRlc0Jhc2U2NA==" # base64; use 256-bit+
+  expiration-minutes: 60

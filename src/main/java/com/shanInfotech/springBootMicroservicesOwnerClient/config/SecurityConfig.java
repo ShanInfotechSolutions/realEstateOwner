@@ -4,6 +4,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -19,7 +20,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableMethodSecurity
+@EnableMethodSecurity // enables @PreAuthorize on controllers if you use it
 public class SecurityConfig {
 
   private final JwtAuthFilter jwtAuthFilter;
@@ -28,19 +29,23 @@ public class SecurityConfig {
     this.jwtAuthFilter = jwtAuthFilter;
   }
 
-  @Bean PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }
+  @Bean
+  PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 
   @Bean
   UserDetailsService userDetailsService(PasswordEncoder enc) {
     return new InMemoryUserDetailsManager(
-      User.withUsername("admin").password(enc.encode("admin123")).roles("ADMIN").build(),
-      User.withUsername("user").password(enc.encode("user123")).roles("USER").build()
+        User.withUsername("admin").password(enc.encode("admin123")).roles("ADMIN").build(),
+        User.withUsername("user").password(enc.encode("user123")).roles("USER").build()
     );
   }
 
+  // New-style: pass UDS in constructor (no-arg ctor/setter are deprecated)
   @Bean
   AuthenticationProvider authenticationProvider(UserDetailsService uds, PasswordEncoder enc) {
-    DaoAuthenticationProvider p = new DaoAuthenticationProvider(uds); // new-style ctor
+    DaoAuthenticationProvider p = new DaoAuthenticationProvider(uds);
     p.setPasswordEncoder(enc);
     return p;
   }
@@ -54,13 +59,14 @@ public class SecurityConfig {
   SecurityFilterChain filterChain(HttpSecurity http, AuthenticationProvider provider) throws Exception {
     http
       .csrf(csrf -> csrf.disable())
+      // .cors(Customizer.withDefaults()) // enable if calling service directly from React (no gateway/proxy)
       .sessionManagement(sm -> sm.sessionCreationPolicy(STATELESS))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers("/api/auth/**", "/api/owners/health", "/actuator/health").permitAll()
-        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/owners/**").hasAnyRole("USER","ADMIN")
-        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/owners/**").hasRole("ADMIN")
-        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/owners/**").hasRole("ADMIN")
-        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/owners/**").hasRole("ADMIN")
+        .requestMatchers(HttpMethod.GET, "/api/owners/**").hasAnyRole("USER","ADMIN")
+        .requestMatchers(HttpMethod.POST, "/api/owners/**").hasRole("ADMIN")
+        .requestMatchers(HttpMethod.PUT, "/api/owners/**").hasRole("ADMIN")
+        .requestMatchers(HttpMethod.DELETE, "/api/owners/**").hasRole("ADMIN")
         .anyRequest().authenticated()
       )
       .authenticationProvider(provider)

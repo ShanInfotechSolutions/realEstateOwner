@@ -32,7 +32,6 @@ public class JwtService {
     this.expirationMillis = Math.max(1, expirationMinutes) * 60_000L;
   }
 
-  /** Generate a token with username (sub) and optional roles claim. */
   public String generateToken(UserDetails user) {
     Instant now = Instant.now();
     List<String> roles = user.getAuthorities().stream()
@@ -41,7 +40,7 @@ public class JwtService {
 
     return Jwts.builder()
         .subject(user.getUsername())
-        .claim("roles", roles) // optional but handy
+        .claim("roles", roles) // optional
         .issuedAt(Date.from(now))
         .expiration(new Date(now.toEpochMilli() + expirationMillis))
         .signWith(key)

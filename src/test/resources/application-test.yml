@@ -1,0 +1,20 @@
+# --- security/JWT required by JwtService ---
+jwt:
+  # 32 bytes (256-bit) base64. OK for tests.
+  secret: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+  expiration-minutes: 60
+
+# --- keep tests isolated from service discovery/cloud ---
+eureka:
+  client:
+    enabled: false
+spring:
+  cloud:
+    discovery:
+      enabled: false
+
+# Optional: quiet logs in tests
+logging:
+  level:
+    root: WARN
+    org.springframework: WARN
